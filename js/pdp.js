@@ -1,14 +1,10 @@
-// Houdt het huidige Pokémon-ID bij
 let currentPokemonId = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   const MAX_POKEMONS = 1000;
-
-  // Haalt de Pokémon ID uit de URL (bijv. ?id=25 voor Pikachu)
   const pokemonID = new URLSearchParams(window.location.search).get("id");
   const id = parseInt(pokemonID, 10);
 
-  // Controleert of het ID geldig is (tussen 1 en 1000), anders wordt de gebruiker teruggestuurd naar index.html
   if (id < 1 || id > MAX_POKEMONS) {
     return (window.location.href = "./index.html");
   }
@@ -17,12 +13,8 @@ document.addEventListener("DOMContentLoaded", () => {
   loadPokemon(id);
 });
 
-// Functie om Pokémon-data op te halen en weer te geven
 async function loadPokemon(id) {
   try {
-    // Voert 2 API-aanroepen tegelijkertijd uit:
-    // 1. Algemene Pokémon data (zoals naam, type, stats, afbeelding)
-    // 2. Soort-specifieke data (zoals de beschrijving)
     const [pokemonID, pokemonSpecies] = await Promise.all([
       fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then((res) =>
         res.json()
@@ -33,21 +25,16 @@ async function loadPokemon(id) {
       ),
     ]);
 
-    // Selecteert het HTML-element waar de abilities worden getoond
     const abilitiesWrapper = document.querySelector(
       ".pokemon-detail-wrap .pokemon-detail.move"
     );
 
-    // Controleert of de huidige Pokémon overeenkomt met de geladen Pokémon
     if (currentPokemonId === id) {
-      displayPokemonDetails(pokemonID); // Roept functie aan om details weer te geven
-
-      // Haalt de Engelse beschrijving op
+      displayPokemonDetails(pokemonID);
       const flavorText = getEnglishFlavorText(pokemonSpecies);
       document.querySelector(".body3-fonts.pokemon-description").textContent =
         flavorText;
 
-      // Pijlen om te navigeren naar de vorige of volgende Pokémon
       const [leftArrow, rightArrow] = ["#leftArrow", "#rightArrow"].map((sel) =>
         document.querySelector(sel)
       );
@@ -56,7 +43,7 @@ async function loadPokemon(id) {
         leftArrow.removeEventListener("click", navigatePokemon);
         if (id !== 1) {
           leftArrow.addEventListener("click", () => {
-            navigatePokemon(id - 1); // Vorige Pokémon
+            navigatePokemon(id - 1);
           });
         }
       }
@@ -65,30 +52,25 @@ async function loadPokemon(id) {
         rightArrow.removeEventListener("click", navigatePokemon);
         if (id !== 1000) {
           rightArrow.addEventListener("click", () => {
-            navigatePokemon(id + 1); // Volgende Pokémon
+            navigatePokemon(id + 1);
           });
         }
       }
 
-      // Update de URL zonder de pagina opnieuw te laden
       window.history.pushState({}, "", `./detail.html?id=${id}`);
     }
-
-    // Leegt het abilities-element voordat nieuwe data wordt toegevoegd
     abilitiesWrapper.innerHTML = "";
   } catch (error) {
-    console.error("An error occurred while fetching Pokémon data:", error);
+    console.error("an error while fetching pokemon data:", error);
     return false;
   }
 }
 
-// Functie om naar een andere Pokémon te navigeren
 async function navigatePokemon(id) {
   currentPokemonId = id;
   await loadPokemon(id);
 }
 
-// Object dat de type-kleuren koppelt aan hun kleuren in hex
 const typeColors = {
   normal: "#A8A878",
   fire: "#F08030",
@@ -107,17 +89,15 @@ const typeColors = {
   dragon: "#7038f8",
   dark: "#705848",
   steel: "#B8B8B0",
-  fairy: "#EE99AC",
+  dark: "#EE99AC",
 };
 
-// Functie om CSS-stijlen toe te passen op een lijst van elementen
 function setElementStyles(elements, cssProperty, value) {
   elements.forEach((element) => {
     element.style[cssProperty] = value;
   });
 }
 
-// Functie om een hex-kleur om te zetten naar een RGB-string (bijv. "#FF5733" → "255, 87, 51")
 function rgbaFromHex(hexColor) {
   return [
     parseInt(hexColor.slice(1, 3), 16),
@@ -126,28 +106,53 @@ function rgbaFromHex(hexColor) {
   ].join(", ");
 }
 
-// Functie om de achtergrondkleur aan te passen aan het type van de Pokémon
 function setTypeBackgroundColor(pokemon) {
   const mainType = pokemon.types[0].type.name;
   const color = typeColors[mainType];
 
   if (!color) {
-    console.warn(`Color not defined for type: ${mainType}`);
+    console.warn(`color not define for type: ${mainType}`);
     return;
   }
-
-  // Past de kleur toe op verschillende elementen
   const detailMainElement = document.querySelector(".detail-main");
   setElementStyles([detailMainElement], "backgroundColor", color);
   setElementStyles([detailMainElement], "borderColor", color);
+
+  setElementStyles(
+    document.querySelectorAll(".power-wrapper > p"),
+    "backgroundColor",
+    color
+  );
+
+  setElementStyles(
+    document.querySelectorAll(".stats-wrap p.stats"),
+    "color",
+    color
+  );
+
+  setElementStyles(
+    document.querySelectorAll(".stats-wrap .progress-bar"),
+    "color",
+    color
+  );
+
+  const rgbaColor = rgbaFromHex(color);
+  const styleTag = document.createElement("style");
+  styleTag.innerHTML = `
+    .stats-wrap .progress-bar::-webkit-progress-bar {
+        background-color: rgba(${rgbaColor}, 0.5);
+    }
+    .stats-wrap .progress-bar::-webkit-progress-value {
+        background-color: ${color};
+    }
+  `;
+  document.head.appendChild(styleTag);
 }
 
-// Zet de eerste letter van een string om naar hoofdletter
 function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
 }
 
-// Functie om een nieuw HTML-element te maken en toe te voegen aan een ouder-element
 function createAndAppendElement(parent, tag, options = {}) {
   const element = document.createElement(tag);
   Object.keys(options).forEach((key) => {
@@ -157,27 +162,28 @@ function createAndAppendElement(parent, tag, options = {}) {
   return element;
 }
 
-// Functie die de Pokémon-details weergeeft op de pagina
 function displayPokemonDetails(pokemon) {
   const { name, id, types, weight, height, abilities, stats } = pokemon;
   const capitalizePokemonName = capitalizeFirstLetter(name);
 
-  // Stelt de paginatitel in
+  // Zet de naam van de Pokémon in de paginatitel
   document.querySelector("title").textContent = capitalizePokemonName;
 
-  // Stelt de naam en ID van de Pokémon in
+  // Voeg de naam toe aan de pagina
   document.querySelector(".name-wrap .name").textContent =
     capitalizePokemonName;
+
+  // Voeg de ID van de Pokémon toe en zorg dat het altijd uit 3 cijfers bestaat
   document.querySelector(
     ".pokemon-id-wrap .body2-fonts"
   ).textContent = `#${String(id).padStart(3, "0")}`;
 
-  // Stelt de afbeelding in
+  // Zet de afbeelding van de Pokémon
   const imageElement = document.querySelector(".detail-img-wrapper img");
   imageElement.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
   imageElement.alt = name;
 
-  // Stelt de type-elementen in
+  // Leeg de type-wrapper en voeg de types van de Pokémon toe
   const typeWrapper = document.querySelector(".power-wrapper");
   typeWrapper.innerHTML = "";
   types.forEach(({ type }) => {
@@ -187,15 +193,76 @@ function displayPokemonDetails(pokemon) {
     });
   });
 
-  // Zet de achtergrondkleur op basis van het type
+  // Zet het gewicht en de lengte van de Pokémon
+  document.querySelector(".pokemon-detail .weight").textContent = `${
+    weight / 10
+  } kg`;
+  document.querySelector(".pokemon-detail .height").textContent = `${
+    height / 10
+  } m`;
+
+  // Leeg de abilities-wrapper en voeg de abilities van de Pokémon toe
+  const abilitiesWrapper = document.querySelector(
+    ".pokemon-detail-wrap .pokemon-detail.move"
+  );
+  abilitiesWrapper.innerHTML = ""; // Zorg ervoor dat er geen dubbele abilities staan
+
+  abilities.forEach(({ ability }) => {
+    createAndAppendElement(abilitiesWrapper, "p", {
+      className: "body3-fonts",
+      textContent: ability.name,
+    });
+  });
+
+  // Leeg de stats-wrapper en voeg de statistieken van de Pokémon toe
+  const statsWrapper = document.querySelector(".stats-wrapper");
+  statsWrapper.innerHTML = "";
+
+  // Mapping voor de statistieknamen zodat ze korter en overzichtelijker zijn
+  const statNameMapping = {
+    hp: "HP",
+    attack: "ATK",
+    defense: "DEF",
+    "special-attack": "SATK",
+    "special-defense": "SDEF",
+    speed: "SPD",
+  };
+
+  // Voeg elke stat toe aan de pagina
+  stats.forEach(({ stat, base_stat }) => {
+    const statDiv = document.createElement("div");
+    statDiv.className = "stats-wrap";
+    statsWrapper.appendChild(statDiv);
+
+    // Voeg de naam van de stat toe (bijv. HP, ATK, DEF, etc.)
+    createAndAppendElement(statDiv, "p", {
+      className: "body3-fonts stats",
+      textContent: statNameMapping[stat.name],
+    });
+
+    // Voeg de stat-waarde toe (met 3 cijfers voor consistentie)
+    createAndAppendElement(statDiv, "p", {
+      className: "body3-fonts",
+      textContent: String(base_stat).padStart(3, "0"),
+    });
+
+    // Voeg een progress bar toe die de stat-visueel weergeeft
+    createAndAppendElement(statDiv, "progress", {
+      className: "progress-bar",
+      value: base_stat,
+      max: 100,
+    });
+  });
+
+  // Pas de achtergrondkleur aan op basis van het type van de Pokémon
   setTypeBackgroundColor(pokemon);
 }
 
-// Haalt de Engelse beschrijving van de Pokémon op
 function getEnglishFlavorText(pokemonSpecies) {
   for (let entry of pokemonSpecies.flavor_text_entries) {
     if (entry.language.name === "en") {
-      return entry.flavor_text.replace(/\f/g, " "); // Verwijdert ongewenste tekens
+      let flavor = entry.flavor_text.replace(/\f/g, " ");
+      return flavor;
     }
   }
   return "";
